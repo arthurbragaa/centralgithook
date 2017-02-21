@@ -150,6 +150,10 @@ impl Scratch
 
     pub fn split_subdir(&self, module: &str, newrev: Oid) -> Option<Oid>
     {
+        debug!("==== split subdir (module:{}, newrev:{})",
+               &module,
+               &newrev);
+        let mut count = 0;
         let walk = {
             let mut walk = self.repo.revwalk().expect("walk: can't create revwalk");
             walk.set_sorting(SORT_REVERSE | SORT_TOPOLOGICAL);
@@ -160,6 +164,7 @@ impl Scratch
         let mut map = HashMap::<Oid, Oid>::new();
 
         'walk: for commit in walk {
+            count += 1;
             let commit = self.repo.find_commit(commit.unwrap()).unwrap();
             let tree = commit.tree().expect("commit has no tree");
 
@@ -188,7 +193,10 @@ impl Scratch
                         _ => CommitKind::Orphan,
                     }
                 }
-                _ => CommitKind::Orphan,
+                x => {
+                    debug!("=== commit {} has {} parents", commit.id(), x);
+                    CommitKind::Orphan
+                },
             } {
                 CommitKind::Merge(parent1, parent2) => {
                     let parent1 = self.repo.find_commit(parent1).unwrap();
@@ -210,6 +218,8 @@ impl Scratch
                 }
             }
         }
+
+        debug!("=== walked {} commits", count);
 
         return map.get(&newrev).map(|&id| id);
     }
