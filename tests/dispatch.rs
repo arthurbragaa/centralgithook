@@ -45,35 +45,36 @@ impl MockHooks
 
 impl Hooks for MockHooks
 {
-    fn branch(&self) -> &str
-    {
-        "master"
-    }
-
     fn review_upload(&self,
                      _scratch: &Scratch,
                      _host: &RepoHost,
                      newrev: git2::Object,
-                     module: &str)
+                     module: &str,
+                     branch: &str)
         -> ReviewUploadResult
     {
-        self.set_called(&format!("review_upload(_,{},{})", newrev.id(), module));
+        self.set_called(&format!("review_upload(_,{},{},{})", newrev.id(), module, branch));
         self.review_upload_return.clone()
     }
 
-    fn pre_create_project(&self, _scratch: &Scratch, _rev: git2::Oid, project: &str)
+    fn pre_create_project(&self, _scratch: &Scratch, _rev: git2::Oid, project: &str, branch: &str)
     {
-        self.set_called(&format!("pre_create_project(_,_,{})", project));
+        self.set_called(&format!("pre_create_project(_,_,{},{})", project,branch));
     }
 
-    fn project_created(&self, _scratch: &Scratch, _host: &RepoHost, project: &str)
+    fn project_created(&self, _scratch: &Scratch, _host: &RepoHost, project: &str, branch: &str)
     {
-        self.set_called(&format!("project_created(_,{})", project));
+        self.set_called(&format!("project_created(_,{},{})", project,branch));
     }
 
-    fn central_submit(&self, _scratch: &Scratch, _host: &RepoHost, newrev: git2::Object)
+    fn central_submit(
+        &self,
+        _scratch: &Scratch,
+        _host: &RepoHost,
+        newrev: git2::Object,
+        branch: &str)
     {
-        self.set_called(&format!("central_submit(_,{})", newrev.id()));
+        self.set_called(&format!("central_submit(_,{},{})", newrev.id(), branch));
     }
 }
 
@@ -108,7 +109,7 @@ fn test_dispatch()
                         &host,
                         &scratch));
 
-    assert_eq!(hooks.called(), format!("review_upload(_,{},central)", head));
+    assert_eq!(hooks.called(), format!("review_upload(_,{},central,master)", head));
 
     host.create_project("module");
     let module = helpers::TestRepo::new(&td.path().join("module"));
@@ -133,7 +134,7 @@ fn test_dispatch()
                         &hooks,
                         &host,
                         &scratch));
-    assert_eq!(hooks.called(), format!("review_upload(_,{},module)", head));
+    assert_eq!(hooks.called(), format!("review_upload(_,{},module,master)", head));
 
     // reject direct push to master on module
     assert_eq!(1,
@@ -238,7 +239,7 @@ fn test_dispatch()
                         &hooks,
                         &host,
                         &scratch));
-    assert_eq!(hooks.called(), format!("central_submit(_,{})", head));
+    assert_eq!(hooks.called(), format!("central_submit(_,{},master)", head));
 
     // submit only happens on central
     assert_eq!(0,
@@ -257,7 +258,7 @@ fn test_dispatch()
                         &hooks,
                         &host,
                         &scratch));
-    assert_eq!(hooks.called(), format!("central_submit(_,{})", head));
+    assert_eq!(hooks.called(), format!("central_submit(_,{},master)", head));
 
     // project created calls a hook
     assert_eq!(0,
@@ -269,7 +270,7 @@ fn test_dispatch()
                         &hooks,
                         &host,
                         &scratch));
-    assert_eq!(hooks.called(), format!("project_created(_,module)"));
+    assert_eq!(hooks.called(), format!("project_created(_,module,master)"));
 
     // project created calls a hook
     assert_eq!(0,
@@ -280,5 +281,5 @@ fn test_dispatch()
                         &hooks,
                         &host,
                         &scratch));
-    assert_eq!(hooks.called(), format!("pre_create_project(_,_,module)"));
+    assert_eq!(hooks.called(), format!("pre_create_project(_,_,module,master)"));
 }

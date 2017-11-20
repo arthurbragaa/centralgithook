@@ -17,7 +17,6 @@ const GERRIT_PORT: &'static str = "29418";
 const AUTOMATION_USER: &'static str = "centralgit";
 const GERRIT_HOST: &'static str = "localhost";
 const CENTRAL_NAME: &'static str = "central";
-const BRANCH: &'static str = "master";
 
 fn main()
 {
@@ -52,7 +51,7 @@ fn main()
         for arg in env::args() {
             args.push(arg);
         }
-        let hooks = CentralGit::new(BRANCH);
+        let hooks = CentralGit::new();
         exit(centralgithook::dispatch(args, &hooks, &gerrit, &scratch));
     }
 }

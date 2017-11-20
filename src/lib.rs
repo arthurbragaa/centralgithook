@@ -32,13 +32,12 @@ pub trait Hooks
                      scratch: &Scratch,
                      host: &RepoHost,
                      newrev: git2::Object,
-                     module: &str)
+                     module: &str,
+                     branch: &str)
         -> ReviewUploadResult;
-    fn project_created(&self, scratch: &Scratch, host: &RepoHost, project: &str);
-    fn pre_create_project(&self, scratch: &Scratch, rev: git2::Oid, project: &str);
-    fn central_submit(&self, scratch: &Scratch, host: &RepoHost, newrev: git2::Object);
-
-    fn branch(&self) -> &str;
+    fn project_created(&self, scratch: &Scratch, host: &RepoHost, project: &str, branch: &str);
+    fn pre_create_project(&self, scratch: &Scratch, rev: git2::Oid, project: &str, branch: &str);
+    fn central_submit(&self, scratch: &Scratch, host: &RepoHost, newrev: git2::Object, branch: &str);
 }
 
 pub trait RepoHost

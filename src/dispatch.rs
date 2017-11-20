@@ -91,20 +91,22 @@ pub fn dispatch(pargs: Vec<String>, hooks: &Hooks, host: &RepoHost, scratch: &Sc
         ("", "")
     };
 
-    if branch != "" && branch != hooks.branch() {
+    // TODO: match master/*
+    if branch != "" && branch != "master" {
         debug!("branch not controled by centralgit: {} ({})",
                branch,
-               hooks.branch());
+               "master");
         return 0;
     }
 
     let (_, project) = args.value_of("project").expect("no project").split_at(host.prefix().len());
 
     if is_create_project {
-        let rev = scratch.tracking(host, host.central(), hooks.branch())
+        // TODO: do this for all master/* branches aswell
+        let rev = scratch.tracking(host, host.central(), "master")
             .expect("pre_create_project: no central tracking")
             .id();
-        hooks.pre_create_project(&scratch, rev, &project);
+        hooks.pre_create_project(&scratch, rev, &project, "master");
         return 0;
     }
 
@@ -123,7 +125,7 @@ pub fn dispatch(pargs: Vec<String>, hooks: &Hooks, host: &RepoHost, scratch: &Sc
                uploader.contains(host.automation_user()));
         println!("####");
         println!("#### Do not push directly to {}!",
-                 hooks.branch());
+                 branch);
         println!("####");
         return 1;
     }
@@ -131,10 +133,11 @@ pub fn dispatch(pargs: Vec<String>, hooks: &Hooks, host: &RepoHost, scratch: &Sc
     if is_submit {
         // submit to central
         let commit = args.value_of("commit").unwrap_or("");
-        hooks.central_submit(&scratch, host, scratch.transfer(commit, &this_project));
+        hooks.central_submit(&scratch, host, scratch.transfer(commit, &this_project), &branch);
     }
     else if is_project_created {
-        hooks.project_created(&scratch, host, &project);
+        // TODO: do this for all master/* branches aswell
+        hooks.project_created(&scratch, host, &project, "master");
         println!("==== project_created");
     }
     else if is_review {
@@ -143,11 +146,12 @@ pub fn dispatch(pargs: Vec<String>, hooks: &Hooks, host: &RepoHost, scratch: &Sc
         match hooks.review_upload(&scratch,
                                   host,
                                   scratch.transfer(newrev, &this_project),
-                                  project) {
+                                  project,
+                                  &branch) {
             ReviewUploadResult::RejectNoFF => {
                 println!("####");
                 println!("#### Commit not based on {}, rebase first!",
-                         hooks.branch());
+                         branch);
                 println!("####");
             }
             ReviewUploadResult::NoChanges => {}
@@ -166,7 +170,7 @@ pub fn dispatch(pargs: Vec<String>, hooks: &Hooks, host: &RepoHost, scratch: &Sc
                          scratch.push(host,
                                       oid,
                                       host.central(),
-                                      &format!("refs/for/{}", hooks.branch())));
+                                      &format!("refs/for/{}", branch)));
                 // println!("==== The review upload may have worked, even if it says error below. \
                           // Look UP! ====")
             }
@@ -182,8 +186,8 @@ pub fn dispatch(pargs: Vec<String>, hooks: &Hooks, host: &RepoHost, scratch: &Sc
         if is_initial {
             println!(".\n\n##### INITIAL IMPORT ######");
             let newrev = args.value_of("newrev").unwrap_or("");
-            // hooks.central_submit(&scratch, scratch.transfer(newrev, &this_project));
-            hooks.central_submit(&scratch, host, scratch.transfer(newrev, &this_project));
+            // TODO: do this for all master/* branches aswell
+            hooks.central_submit(&scratch, host, scratch.transfer(newrev, &this_project), "master");
             return 0;
         }
         else {
